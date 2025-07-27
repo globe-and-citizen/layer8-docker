@@ -117,7 +117,7 @@ services:
       - DB_SETUP_MIGRATION_PATH=./migrations
     env_file:
       - ./auth-server/.env
-    command: [ "./setup" ]
+    command: [ "./setup", "docker" ]
     depends_on:
       auth-postgres:
         condition: service_healthy
