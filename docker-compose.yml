@@ -16,11 +16,10 @@ services:
     stdin_open: true
     tty: true
     networks:
-      layer8-network:
-        ipv4_address: 10.10.10.101
-    extra_hosts:
-      - "rp.layer8.com:10.10.10.102"
-      - "auth.layer8.com:10.10.10.103"
+      - layer8-network
+#    extra_hosts:
+#      - "rp.layer8.com:10.10.10.102"
+#      - "auth.layer8.com:10.10.10.103"
 
   reverse-proxy:
     image: dtpthao/reverse-proxy:0.1.0
@@ -37,8 +36,7 @@ services:
     stdin_open: true
     tty: true
     networks:
-      layer8-network:
-        ipv4_address: 10.10.10.102
+      - layer8-network
 
   authentication-server:
     image: dtpthao/authentication-server:0.1.0
@@ -61,8 +59,7 @@ services:
     stdin_open: true
     tty: true
     networks:
-      layer8-network:
-        ipv4_address: 10.10.10.103
+      - layer8-network
 
   auth-influxdb2:
     container_name: auth-influxdb2
@@ -78,8 +75,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      layer8-network:
-        ipv4_address: 10.10.10.104
+      - layer8-network
 
   auth-telegraf:
     image: telegraf:alpine
@@ -100,8 +96,7 @@ services:
       timeout: 5s
       retries: 10
     networks:
-      layer8-network:
-        ipv4_address: 10.10.10.105
+      - layer8-network
 
   auth-postgres:
     container_name: auth-postgres
@@ -121,8 +116,7 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      layer8-network:
-        ipv4_address: 10.10.10.106
+      - layer8-network
 
   auth-setup:
     image: dtpthao/authentication-server:0.1.0
@@ -140,13 +134,8 @@ services:
       auth-telegraf:
         condition: service_healthy
     networks:
-      layer8-network:
-        ipv4_address: 10.10.10.107
+      - layer8-network
     restart: "no"
 
 networks:
   layer8-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.10.10.0/24

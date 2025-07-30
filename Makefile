@@ -1,9 +1,12 @@
-.PHONY: init start upload clean
+.PHONY: init start stop upload clean
 
 copy_env:
 	cp auth-server/.env.dev auth-server/.env
 	cp forward-proxy/.env.dev forward-proxy/.env
 	cp reverse-proxy/.env.dev reverse-proxy/.env
+	mkdir logs
+	touch logs/forward-proxy.log
+	touch logs/reverse-proxy.log
 
 upload_cert:
 	@TOKEN=$$(curl --silent --location 'http://localhost:5001/api/v1/login-client' \
@@ -26,12 +29,17 @@ init: copy_env
 start:
 	docker compose up -d
 
+stop:
+	docker compose down
+
 upload: upload_cert
 
 clean:
-    docker compose down
-    rm -f auth-server/.env
-    rm -f forward-proxy/.env
-    rm -f reverse-proxy/.env
-    rm -rf auth-server/influxdb2-data
-    rm -rf auth-server/pg-data
+	docker compose down
+	rm -f auth-server/.env
+	rm -f forward-proxy/.env
+	rm -f reverse-proxy/.env
+	rm -rf auth-server/influxdb2-data
+	rm -rf auth-server/pg-data
+	rm -f logs/forward-proxy.log
+	rm -f logs/reverse-proxy.log
