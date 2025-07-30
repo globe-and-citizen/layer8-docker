@@ -1,3 +1,4 @@
+#!/bin/bash
 
 copy_env() {
   cp auth-server/.env.dev auth-server/.env
@@ -36,9 +37,9 @@ fi
 if [ "$1" = "init" ]; then
   copy_env
   sleep 1
-  upload_cert
-  sleep 30
   docker compose up -d
+  sleep 30
+  upload_cert
 elif [ "$1" = "start" ]; then
   docker compose up -d
 elif [ "$1" = "upload" ]; then
