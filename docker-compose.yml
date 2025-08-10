@@ -2,12 +2,12 @@ name: Layer8
 
 services:
   forward-proxy:
-    image: dtpthao/forward-proxy:0.1.1
+    image: dtpthao/forward-proxy:0.3.0
     container_name: forward-proxy
     ports:
       - "6191:6191"
     hostname: fp
-    domainname: layer8.com
+    domainname: layer8proxy.net
     env_file:
       - ./forward-proxy/.env
     volumes:
@@ -23,14 +23,14 @@ services:
       - "auth.layer8.com:10.10.10.103"
 
   reverse-proxy:
-    image: dtpthao/reverse-proxy:0.1.1-multiarch
+    image: dtpthao/reverse-proxy:0.3.0
     container_name: reverse-proxy
     env_file:
       - ./reverse-proxy/.env
     ports:
       - "6193:6193"
     hostname: rp
-    domainname: layer8.com
+    domainname: layer8proxy.net
     volumes:
       - ./logs/reverse-proxy.log:/var/log/layer8/log.txt
     restart: on-failure
@@ -48,7 +48,7 @@ services:
     ports:
       - "5001:5001"
     hostname: auth
-    domainname: layer8.com
+    domainname: layer8proxy.net
     command: ["./main"]
     depends_on:
       auth-postgres:
