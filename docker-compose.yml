@@ -41,7 +41,7 @@ services:
         ipv4_address: 10.10.10.102
 
   auth-server:
-    image: layer8server/auth_image:0.3.0
+    image: layer8server/auth_image:0.3.4
     container_name: auth-server
     env_file:
       - ./auth-server/.env
@@ -125,7 +125,7 @@ services:
         ipv4_address: 10.10.10.106
 
   auth-setup:
-    image: layer8server/auth_image:0.3.0
+    image: layer8server/auth_image:0.3.4
     container_name: auth-setup
     environment:
       - DB_SETUP_MIGRATION_PATH=./migrations
