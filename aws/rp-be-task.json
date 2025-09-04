@@ -1,0 +1,91 @@
+{
+  "family": "layer8-rp-be",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "executionRoleArn": "arn:aws:iam::487414984390:role/layer8-ecs-task-exe",
+  "taskRoleArn": "arn:aws:iam::487414984390:role/layer8-ecs-task-exe",
+  "containerDefinitions": [
+    {
+      "name": "reverse-proxy",
+      "image": "487414984390.dkr.ecr.ap-southeast-1.amazonaws.com/reverse-proxy:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 6193,
+          "hostPort": 6193,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "layer8",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "environment": [
+        { "name": "LISTEN_ADDRESS", "value": "0.0.0.0" },
+        { "name": "LISTEN_PORT", "value": "6193" },
+        { "name": "PATH_TO_SERVER_CONF", "value": "../server_conf.yml" },
+        { "name": "LOG_LEVEL", "value": "trace" },
+        { "name": "LOG_PATH", "value": "console" },
+        { "name": "NTOR_SERVER_ID", "value": "http://demobackend.layer8proxy.net" },
+        { "name": "NTOR_STATIC_SECRET", "value": "this is 32-byte nTorStaticSecret" },
+        { "name": "JWT_VIRTUAL_CONNECTION_SECRET", "value": "this is 32-byte rp's jwt secret." },
+        { "name": "JWT_EXP_IN_HOURS", "value": "24" },
+        { "name": "BACKEND_URL", "value": "http://localhost:3000" },
+        { "name": "ENABLE_TLS", "value": "false" },
+        { "name": "PATH_TO_CA_CERT", "value": "/usr/local/certs/generated/ca.pem" },
+        { "name": "PATH_TO_CERT", "value": "/usr/local/certs/generated/reverse_proxy.pem" },
+        { "name": "PATH_TO_KEY", "value": "/usr/local/certs/generated/reverse_proxy-key.pem" }
+      ],
+      "command": [],
+      "linuxParameters": {
+        "initProcessEnabled": true
+      }
+    },
+    {
+      "name": "spa-backend",
+      "image": "487414984390.dkr.ecr.ap-southeast-1.amazonaws.com/spa-backend:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "hostPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "layer8",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "environment": [
+        { "name": "HOST", "value": "0.0.0.0" },
+        { "name": "PORT", "value": "3000" },
+        { "name": "JWT_SECRET", "value": "spa-backend-jwt-secret" },
+        { "name": "LAYER8_URL", "value": "http://auth.layer8proxy.net"},
+        { "name": "LAYER8_CALLBACK_URL", "value": "http://spa-fe-host:5173/oauth2/callback" },
+        { "name": "LAYER8_RESOURCE_URL", "value": "http://auth.layer8proxy.net/api/user" },
+        { "name": "LAYER8_UUID", "value": "df9225b6-8795-48a0-91d3-01e7583950d5" },
+        { "name": "LAYER8_SECRET", "value": "04d11f24cde4e36d51e1ff8728e002b5" }
+      ],
+      "command": [],
+      "linuxParameters": {
+        "initProcessEnabled": true
+      }
+    }
+  ]
+}

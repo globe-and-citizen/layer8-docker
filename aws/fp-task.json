@@ -1,0 +1,95 @@
+{
+  "family": "layer8-forward-proxy",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "executionRoleArn": "arn:aws:iam::487414984390:role/layer8-ecs-task-exe",
+  "taskRoleArn": "arn:aws:iam::487414984390:role/layer8-ecs-task-exe",
+  "containerDefinitions": [
+    {
+      "name": "forward-proxy",
+      "image": "487414984390.dkr.ecr.ap-southeast-1.amazonaws.com/forward-proxy:latest",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 6191,
+          "hostPort": 6191,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "layer8",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "environment": [
+        {
+          "name": "LISTEN_ADDRESS",
+          "value": "0.0.0.0"
+        },
+        {
+          "name": "LISTEN_PORT",
+          "value": "6191"
+        },
+        {
+          "name": "PATH_TO_SERVER_CONF",
+          "value": "../server_conf.yml"
+        },
+        {
+          "name": "LOG_LEVEL",
+          "value": "trace"
+        },
+        {
+          "name": "LOG_PATH",
+          "value": "console"
+        },
+        {
+          "name": "JWT_VIRTUAL_CONNECTION_KEY",
+          "value": "secret"
+        },
+        {
+          "name": "JWT_EXP_IN_HOURS",
+          "value": "24"
+        },
+        {
+          "name": "AUTH_ACCESS_TOKEN",
+          "value": "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjE5MTYyMzkwMjIsInVzZXJfaWQiOiIxMjNlZmE4Yi1iOTJmLTRiOTEtYmEyOS05ZWE1ZGE4NWU5NGEiLCJ1c2VybmFtZSI6ImxheWVyOCJ9._rO0VnTqZC7RcL0guyH02Q88mro94ZdE9PaH9olcTvo"
+        },
+        {
+          "name": "AUTH_GET_CERTIFICATE_URL",
+          "value": "http://auth.layer8proxy.net/sp-pub-key?backend_url="
+        },
+        {
+          "name": "ENABLE_TLS",
+          "value": "false"
+        },
+        {
+          "name": "PATH_TO_CA_CERT",
+          "value": "/usr/local/certs/generated/ca.pem"
+        },
+        {
+          "name": "PATH_TO_CERT",
+          "value": "/usr/local/certs/generated/forward_proxy.pem"
+        },
+        {
+          "name": "PATH_TO_KEY",
+          "value": "/usr/local/certs/generated/forward_proxy-key.pem"
+        }
+      ],
+      "command": [],
+      "linuxParameters": {
+        "initProcessEnabled": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,222 @@
+{
+  "family": "layer8-auth",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::487414984390:role/layer8-ecs-task-exe",
+  "taskRoleArn": "arn:aws:iam::487414984390:role/layer8-ecs-task-exe",
+  "volumes": [
+    {
+      "name": "pgdata",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-07edaf4b8a5653b58",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "fsap-0fad55ce1a3f6f232",
+          "iam": "ENABLED"
+        }
+      }
+    },
+    {
+      "name": "influxdata",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-07edaf4b8a5653b58",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "fsap-05c9e137ad278613e",
+          "iam": "ENABLED"
+        }
+      }
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "auth-server",
+      "image": "layer8server/auth_image:0.3.7",
+      "command": [
+        "./main"
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "layer8",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "environment": [
+        { "name": "SERVER_PORT", "value": "5001" },
+        { "name": "UP_999_SECRET_KEY", "value": "secret_999" },
+        { "name": "MP_123_SECRET_KEY", "value": "secret_123" },
+        { "name": "JWT_SECRET_KEY", "value": "ThisIsASecret" },
+        { "name": "DB_NAME", "value": "development" },
+        { "name": "DB_HOST", "value": "localhost" },
+        { "name": "DB_PORT", "value": "5432" },
+        { "name": "DB_USER", "value": "layer8development" },
+        { "name": "DB_PASSWORD", "value": "cRACtIeRChYsiNFinuMp" },
+        { "name": "SSL_MODE", "value": "disable" },
+        { "name": "PROXY_URL", "value": "" },
+        { "name": "TEST_CLIENT_BACKEND_URL", "value": "localhost:6193" },
+        { "name": "MAILER_SEND_TEMPLATE_ID", "value": "v69oxl517mz4785k" },
+        { "name": "LAYER8_EMAIL_USERNAME", "value": "info" },
+        { "name": "LAYER8_EMAIL_DOMAIN", "value": "layer8proxy.net" },
+        { "name": "VERIFICATION_CODE_VALIDITY_DURATION", "value": "10m" },
+        { "name": "GENERATE_NEW_ZK_SNARKS_KEYS", "value": "true" },
+        { "name": "INFLUXDB_URL", "value": "http://localhost:8086" },
+        { "name": "INFLUXDB_URL_TELEGRAF", "value": "http://localhost:8086" },
+        { "name": "INFLUXDB_USERNAME", "value": "admin" },
+        { "name": "INFLUXDB_PASSWORD", "value": "somethingthatyoudontknow" },
+        { "name": "INFLUXDB_ORG", "value": "layer8" },
+        { "name": "INFLUXDB_BUCKET", "value": "layer8" },
+        { "name": "INFLUXDB_TOKEN", "value": "DEFAULT_TOKEN_FOR_TESTING" },
+        { "name": "OTEL_EXPORTER_OTLP_ENDPOINT", "value": "localhost:4317" },
+        { "name": "CREATE_TEST_USER", "value": "true" },
+        { "name": "TEST_USER_EMAIL", "value": "test@layer8proxy.net" },
+        { "name": "TEST_USER_PASSWORD", "value": "12341234" },
+        { "name": "TEST_USER_USERNAME", "value": "tester" },
+        { "name": "TEST_USER_FIRST_NAME", "value": "john" },
+        { "name": "TEST_USER_LAST_NAME", "value": "doe" },
+        { "name": "TEST_USER_DISPLAY_NAME", "value": "john" },
+        { "name": "TEST_USER_COUNTRY", "value": "antartica" },
+        { "name": "CREATE_TEST_CLIENT", "value": "true" },
+        { "name": "TEST_CLIENT_NAME", "value": "layer8" },
+        { "name": "TEST_CLIENT_USERNAME", "value": "layer8" },
+        { "name": "TEST_CLIENT_PASSWORD", "value": "12341234" },
+        { "name": "TEST_CLIENT_REDIRECT_URI", "value": "http://localhost:3030/oauth2/callback" },
+        { "name": "TEST_CLIENT_BACKEND_URI", "value": "http://10.10.10.102:6193" },
+        { "name": "SCRAM_ITERATION_COUNT", "value": "4096" },
+        { "name": "SMART_CONTRACT_ADDRESS", "value": "0x5D3c62CD23ED2C46463C9F8B5DadC1e63EB95973" },
+        { "name": "UPDATE_CLIENT_USAGE_STATISTICS_TIME_INTERVAL", "value": "2m" },
+        { "name": "CLIENT_TRAFFIC_RATE_PER_BYTE", "value": "5" },
+        { "name": "WEBSOCKET_NODE_URL", "value": "wss://polygon-mainnet.g.alchemy.com/v2/dkGaa37QGa5qLAb4p6t0k0aF1YnSb45L" }
+      ],
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 5001,
+          "hostPort": 5001,
+          "protocol": "tcp"
+        }
+      ],
+      "dependsOn": [
+        {
+          "containerName": "auth-postgres",
+          "condition": "HEALTHY"
+        },
+        {
+          "containerName": "auth-influxdb2",
+          "condition": "HEALTHY"
+        },
+        {
+          "containerName": "auth-telegraf",
+          "condition": "HEALTHY"
+        }
+      ]
+    },
+    {
+      "name": "auth-postgres",
+      "image": "postgres:13",
+      "essential": false,
+      "portMappings": [
+        {
+          "containerPort": 5432,
+          "hostPort": 5432,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "POSTGRES_USER", "value": "layer8development" },
+        { "name": "POSTGRES_PASSWORD", "value": "cRACtIeRChYsiNFinuMp" },
+        { "name": "POSTGRES_DB", "value": "development" }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "pgdata",
+          "containerPath": "/var/lib/postgresql/data",
+          "readOnly": false
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "layer8",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "pg_isready -U layer8development"],
+        "interval": 5,
+        "timeout": 5,
+        "retries": 5,
+        "startPeriod": 10
+      }
+    },
+    {
+      "name": "auth-influxdb2",
+      "image": "influxdb:2",
+      "essential": false,
+      "portMappings": [
+        {
+          "containerPort": 8086,
+          "hostPort": 8086,
+          "protocol": "tcp"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "influxdata",
+          "containerPath": "/var/lib/influxdb2",
+          "readOnly": false
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "layer8",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD", "curl", "-f", "http://localhost:8086/health"],
+        "interval": 5,
+        "timeout": 5,
+        "retries": 10,
+        "startPeriod": 10
+      }
+    },
+    {
+      "name": "auth-telegraf",
+      "image": "487414984390.dkr.ecr.ap-southeast-1.amazonaws.com/auth-telegraf:latest",
+      "essential": false,
+      "portMappings": [
+        {
+          "containerPort": 4317,
+          "hostPort": 4317,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "INFLUXDB_URL_TELEGRAF", "value": "http://localhost:8086" },
+        { "name": "INFLUXDB_TOKEN", "value": "DEFAULT_TOKEN_FOR_TESTING" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "layer8",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "nc -z localhost 4317"],
+        "interval": 5,
+        "timeout": 5,
+        "retries": 10,
+        "startPeriod": 10
+      }
+    }
+  ]
+}
