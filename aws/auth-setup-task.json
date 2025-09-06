@@ -13,7 +13,7 @@
         "fileSystemId": "fs-07edaf4b8a5653b58",
         "transitEncryption": "ENABLED",
         "authorizationConfig": {
-          "accessPointId": "fsap-0fad55ce1a3f6f232",
+          "accessPointId": "fsap-06ded9d0cc55ff8eb",
           "iam": "ENABLED"
         }
       }
@@ -24,7 +24,7 @@
         "fileSystemId": "fs-07edaf4b8a5653b58",
         "transitEncryption": "ENABLED",
         "authorizationConfig": {
-          "accessPointId": "fsap-05c9e137ad278613e",
+          "accessPointId": "fsap-0aa08fec7f7d175f6",
           "iam": "ENABLED"
         }
       }
@@ -181,7 +181,7 @@
     },
     {
       "name": "auth-telegraf",
-      "image": "dtpthao/auth-telegraf:custom",
+      "image": "487414984390.dkr.ecr.ap-southeast-1.amazonaws.com/auth-telegraf:latest",
       "essential": false,
       "portMappings": [
         {
