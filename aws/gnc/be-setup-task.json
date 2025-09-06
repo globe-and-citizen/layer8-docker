@@ -1,0 +1,99 @@
+{
+  "family": "gnc-be-setup",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "cpu": "512",
+  "memory": "1024",
+  "runtimePlatform": {
+    "cpuArchitecture": "ARM64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "executionRoleArn": "arn:aws:iam::487414984390:role/layer8-ecs-task-exe",
+  "taskRoleArn": "arn:aws:iam::487414984390:role/layer8-ecs-task-exe",
+  "volumes": [
+    {
+      "name": "gnc-pgdata",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-0f892c71a8319de2f",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "fsap-0383c29aca0dd7aba",
+          "iam": "ENABLED"
+        }
+      }
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "gnc-backend-setup",
+      "image": "487414984390.dkr.ecr.ap-southeast-1.amazonaws.com/gnc-backend:draft0.3",
+      "essential": true,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "gnc",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "environment": [
+        { "name": "API_URL", "value": "0.0.0.0:8080" },
+        { "name": "PORT", "value": "8080" },
+        { "name": "ENV", "value": "DEV" },
+        { "name": "DB_ADDR", "value": "postgres://admin:admin_password@localhost:5432/gnc-db?sslmode=disable" },
+        { "name": "DB_MAX_OPEN_CONNS", "value": "30" },
+        { "name": "DB_MAX_IDLE_CONNS", "value": "30" },
+        { "name": "DB_MAX_IDLE_TIME", "value": "15m" },
+        { "name": "CLOUDINARY_URL", "value": "cloudinary://953177367974311:lPRkA-981I_8j0-s4GXzYg2k79w@dhukt5f3r" },
+        { "name": "AUTH_BASIC_USERNAME", "value": "admin" },
+        { "name": "AUTH_BASIC_PASSWORD", "value": "admin" },
+        { "name": "DB_SETUP_MIGRATION_PATH", "value": "./migrations" }
+      ],
+      "command": [ "./migrate-arm64" ],
+      "linuxParameters": {
+        "initProcessEnabled": true
+      }
+    },
+    {
+      "name": "gnc-postgres",
+      "image": "postgres:13",
+      "essential": false,
+      "portMappings": [
+        {
+          "containerPort": 5432,
+          "hostPort": 5432,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "POSTGRES_USER", "value": "admin" },
+        { "name": "POSTGRES_PASSWORD", "value": "admin_password" },
+        { "name": "POSTGRES_DB", "value": "gnc-db" }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "gnc-pgdata",
+          "containerPath": "/var/lib/postgresql/data",
+          "readOnly": false
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "gnc",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "pg_isready -U admin"],
+        "interval": 5,
+        "timeout": 5,
+        "retries": 5,
+        "startPeriod": 10
+      }
+    }
+  ]
+}
