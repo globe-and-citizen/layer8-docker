@@ -77,10 +77,10 @@
         { "name": "PORT", "value": "3000" },
         { "name": "JWT_SECRET", "value": "spa-backend-jwt-secret" },
         { "name": "LAYER8_URL", "value": "http://auth.layer8proxy.net"},
-        { "name": "LAYER8_CALLBACK_URL", "value": "http://spa-fe-host:5173/oauth2/callback" },
+        { "name": "LAYER8_CALLBACK_URL", "value": "http://13.250.1.101:5173/oauth2/callback" },
         { "name": "LAYER8_RESOURCE_URL", "value": "http://auth.layer8proxy.net/api/user" },
-        { "name": "LAYER8_UUID", "value": "df9225b6-8795-48a0-91d3-01e7583950d5" },
-        { "name": "LAYER8_SECRET", "value": "04d11f24cde4e36d51e1ff8728e002b5" }
+        { "name": "LAYER8_UUID", "value": "906ce98e-2f7e-4354-b738-436a5722afb0" },
+        { "name": "LAYER8_SECRET", "value": "318ccaf7b094842dbef4baa41a4a5a57" }
       ],
       "command": [],
       "linuxParameters": {
