@@ -33,7 +33,7 @@
   "containerDefinitions": [
     {
       "name": "auth-server",
-      "image": "layer8server/auth_image:0.3.7",
+      "image": "layer8server/auth_image:latest",
       "command": [
         "./main"
       ],
@@ -90,6 +90,16 @@
         { "name": "UPDATE_CLIENT_USAGE_STATISTICS_TIME_INTERVAL", "value": "2m" },
         { "name": "CLIENT_TRAFFIC_RATE_PER_BYTE", "value": "5" },
         { "name": "WEBSOCKET_NODE_URL", "value": "wss://polygon-mainnet.g.alchemy.com/v2/dkGaa37QGa5qLAb4p6t0k0aF1YnSb45L" }
+      ],
+      "secrets": [
+        {
+          "name": "TELEGRAM_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:487414984390:secret:layer8-auth-secrets:TELEGRAM_API_KEY::"
+        },
+        {
+          "name": "MAILER_SEND_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:487414984390:secret:layer8-auth-secrets:MAILER_SEND_API_KEY::"
+        }
       ],
       "essential": true,
       "portMappings": [

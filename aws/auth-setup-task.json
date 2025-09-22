@@ -33,7 +33,7 @@
   "containerDefinitions": [
     {
       "name": "auth-setup",
-      "image": "layer8server/auth_image:0.3.7",
+      "image": "layer8server/auth_image:latest",
       "command": ["./setup", "docker"],
       "logConfiguration": {
         "logDriver": "awslogs",
@@ -43,6 +43,16 @@
           "awslogs-stream-prefix": "ecs"
         }
       },
+      "secrets": [
+        {
+          "name": "TELEGRAM_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:487414984390:secret:layer8-auth-secrets:TELEGRAM_API_KEY::"
+        },
+        {
+          "name": "MAILER_SEND_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:ap-southeast-1:487414984390:secret:layer8-auth-secrets:MAILER_SEND_API_KEY::"
+        }
+      ],
       "environment": [
         { "name": "SERVER_PORT", "value": "5001" },
         { "name": "UP_999_SECRET_KEY", "value": "secret_999" },
