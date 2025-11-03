@@ -11,13 +11,16 @@ services:
     env_file:
       - ./forward-proxy/.env
     volumes:
-      - ./logs/forward-proxy.log:/var/log/layer8/log.txt
+      - ./logs/fp:/var/log/layer8
     restart: on-failure
     stdin_open: true
     tty: true
     networks:
       layer8-network:
         ipv4_address: 10.10.10.101
+    depends_on:
+      influxdb2:
+        condition: service_healthy
     extra_hosts:
       - "rp.layer8.com:10.10.10.102"
       - "auth.layer8.com:10.10.10.103"
@@ -32,7 +35,7 @@ services:
     hostname: rp
     domainname: layer8proxy.net
     volumes:
-      - ./logs/reverse-proxy.log:/var/log/layer8/log.txt
+      - ./logs/rp:/var/log/layer8
     restart: on-failure
     stdin_open: true
     tty: true
@@ -41,7 +44,7 @@ services:
         ipv4_address: 10.10.10.102
 
   auth-server:
-    image: layer8server/auth_image:latest
+    image: dtpthao/auth-server:latest
     container_name: auth-server
     env_file:
       - ./auth-server/.env
@@ -53,7 +56,7 @@ services:
     depends_on:
       auth-postgres:
         condition: service_healthy
-      auth-influxdb2:
+      influxdb2:
         condition: service_healthy
       auth-telegraf:
         condition: service_healthy
@@ -64,14 +67,22 @@ services:
       layer8-network:
         ipv4_address: 10.10.10.103
 
-  auth-influxdb2:
-    container_name: auth-influxdb2
+  influxdb2:
+    container_name: influxdb2
     image: influxdb:2
     restart: always
     ports:
-      - 8086:8086
+      - "8086:8086"
     volumes:
-      - ./auth-server/influxdb2-data:/var/lib/influxdb2
+      - ./influxdb2-data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=somethingthatyoudontknow
+      - DOCKER_INFLUXDB_INIT_ORG=layer8
+      - DOCKER_INFLUXDB_INIT_BUCKET=layer8
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=DEFAULT_TOKEN_FOR_TESTING
+      - DOCKER_INFLUXDB_INIT_RETENTION=30d
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8086/health" ]
       interval: 5s
@@ -88,7 +99,7 @@ services:
     volumes:
       - ./auth-server/telegraf.conf:/etc/telegraf/telegraf.conf:ro
     ports:
-      - 4317:4317
+      - "4317:4317"
     environment:
       - INFLUXDB_URL_TELEGRAF=http://host.docker.internal:8086
       - INFLUXDB_TOKEN=DEFAULT_TOKEN_FOR_TESTING
@@ -114,7 +125,7 @@ services:
     volumes:
       - ./auth-server/pg-data:/var/lib/postgresql/data
     ports:
-      - 5433:5432
+      - "5433:5432"
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U layer8development" ]
       interval: 5s
@@ -125,7 +136,7 @@ services:
         ipv4_address: 10.10.10.106
 
   auth-setup:
-    image: layer8server/auth_image:latest
+    image: dtpthao/auth-server:latest
     container_name: auth-setup
     environment:
       - DB_SETUP_MIGRATION_PATH=./migrations
@@ -135,7 +146,7 @@ services:
     depends_on:
       auth-postgres:
         condition: service_healthy
-      auth-influxdb2:
+      influxdb2:
         condition: service_healthy
       auth-telegraf:
         condition: service_healthy
