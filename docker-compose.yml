@@ -2,7 +2,7 @@ name: Layer8
 
 services:
   forward-proxy:
-    image: dtpthao/forward-proxy:latest
+    image: dtpthao/forward-proxy:stats-5
     container_name: forward-proxy
     ports:
       - "6191:6191"
@@ -26,7 +26,7 @@ services:
       - "auth.layer8.com:10.10.10.103"
 
   reverse-proxy:
-    image: dtpthao/reverse-proxy:latest
+    image: dtpthao/reverse-proxy:stats-4
     container_name: reverse-proxy
     env_file:
       - ./reverse-proxy/.env
@@ -44,7 +44,7 @@ services:
         ipv4_address: 10.10.10.102
 
   auth-server:
-    image: layer8server/auth_image:latest
+    image: dtpthao/auth-server:statistics
     container_name: auth-server
     env_file:
       - ./auth-server/.env
@@ -136,7 +136,7 @@ services:
         ipv4_address: 10.10.10.106
 
   auth-setup:
-    image: layer8server/auth_image:latest
+    image: dtpthao/auth-server:statistics
     container_name: auth-setup
     environment:
       - DB_SETUP_MIGRATION_PATH=./migrations
