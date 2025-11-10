@@ -3,5 +3,6 @@
 .vscode/
 **/log.txt
 **/.env
+.env.dev
 auth-server/influxdb2-data
 auth-server/pg-data
