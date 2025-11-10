@@ -4,7 +4,6 @@
 **/log.txt
 **/.env
 .env.dev
-ntor_cert.pem
+*.pem
 auth-server/influxdb2-data
 auth-server/pg-data
-sample-cert.pem
