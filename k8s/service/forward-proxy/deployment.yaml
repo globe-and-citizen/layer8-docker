@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: forward-proxy
+  namespace: layer8
+  labels:
+    app: forward-proxy
+    app.kubernetes.io/name: forward-proxy
+    app.kubernetes.io/component: proxy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: forward-proxy
+  template:
+    metadata:
+      labels:
+        app: forward-proxy
+    spec:
+      # Add host aliases to match docker-compose extra_hosts
+      hostAliases:
+      - ip: "10.96.0.1"  # This will be replaced by K8s service IPs
+        hostnames:
+        - "rp.layer8.com"
+      - ip: "10.96.0.2"
+        hostnames:
+        - "auth.layer8.com"
+      containers:
+      - name: forward-proxy
+        image: dtpthao/forward-proxy:stats-5
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6191
+          name: http
+
+        envFrom:
+        - secretRef:
+            name: forward-proxy-standalone-secret
+
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        livenessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 6191
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /healthcheck
+            port: 6191
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      restartPolicy: Always
