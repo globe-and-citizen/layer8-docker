@@ -1,0 +1,9 @@
+# TODO: for GitOps
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd 
+  labels:
+    name: argocd 
+    app.kubernetes.io/name: argocd 
+    app.kubernetes.io/component: system
