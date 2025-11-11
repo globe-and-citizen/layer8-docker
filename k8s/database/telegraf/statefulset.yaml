@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: telegraf
+  namespace: layer8
+  labels:
+    app: telegraf
+    app.kubernetes.io/name: telegraf
+    app.kubernetes.io/component: monitoring
+spec:
+  serviceName: telegraf
+  replicas: 1
+  selector:
+    matchLabels:
+      app: telegraf
+  template:
+    metadata:
+      labels:
+        app: telegraf
+    spec:
+      containers:
+      - name: telegraf
+        image: telegraf:alpine
+        imagePullPolicy: IfNotPresent
+        
+        ports:
+        - containerPort: 4317
+          name: otlp
+          protocol: TCP
+        - containerPort: 8125
+          name: statsd
+          protocol: UDP
+        
+        envFrom:
+        - secretRef:
+            name: telegraf-standalone-secret
+        
+        volumeMounts:
+        - name: telegraf-config
+          mountPath: /etc/telegraf
+          readOnly: true
+        
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "250m"
+        
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - nc -z localhost 4317
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 10
+        
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - nc -z localhost 4317
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 10
+      
+      volumes:
+      - name: telegraf-config
+        configMap:
+          name: telegraf-config
+      
+      restartPolicy: Always
