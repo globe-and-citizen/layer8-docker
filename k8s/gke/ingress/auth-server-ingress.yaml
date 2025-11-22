@@ -1,0 +1,26 @@
+# Default Namespace : Do not add it to Layer8 NS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: auth-server-ingress
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.allow-http: "true"
+    cert-manager.io/issuer: letsencrypt-auth-server
+spec:
+  tls:
+    - secretName: auth-server-ssl-secret
+      hosts:
+        - authdev.gc.layer8proxy.net 
+  ingressClassName: gce
+  rules:
+  - host: authdev.gc.layer8proxy.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-server
+            port:
+              number: 5001

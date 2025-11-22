@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-migration-script
+  namespace: layer8
+data:
+  run-migrations.sh: |
+    #!/bin/sh
+    set -e
+    
+    echo "Installing postgresql-client..."
+    apk add --no-cache postgresql-client
+    
+    echo "Connecting to database at $POSTGRES_HOST as $POSTGRES_USER to database $POSTGRES_DB..."
+    
+    # Set defaults
+    POSTGRES_HOST="${POSTGRES_HOST:-postgres.layer8.svc.cluster.local}"
+    POSTGRES_USER="${POSTGRES_USER:-layer8development}"
+    POSTGRES_DB="${POSTGRES_DB:-development}"
+    POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-cRACtIeRChYsiNFinuMp}"
+    
+    export PGPASSWORD="${POSTGRES_PASSWORD}"
+    
+    # Test connection
+    echo "Testing database connection..."
+    if ! psql -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "SELECT 1;" > /dev/null 2>&1; then
+      echo "ERROR: Cannot connect to database at ${POSTGRES_HOST}"
+      exit 1
+    fi
+    echo "Database connection successful!"
+    
+    # Create schema_migrations table if it doesn't exist
+    echo "Creating schema_migrations table if needed..."
+    psql -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" << 'EOSQL'
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+        version bigint NOT NULL PRIMARY KEY,
+        dirty boolean NOT NULL
+    );
+    EOSQL
+    
+    # Get current version
+    CURRENT_VERSION=$(psql -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -t -c "SELECT COALESCE(MAX(version), 0) FROM schema_migrations;" | xargs)
+    echo "Current migration version: $CURRENT_VERSION"
+    
+    # Run migrations
+    echo "Checking for migrations to run..."
+    cd /layer8-app
+    MIGRATIONS_RUN=0
+    
+    for file in ./migrations/*.up.sql; do
+      if [ ! -f "$file" ]; then
+        echo "No migration files found in ./migrations/"
+        break
+      fi
+      
+      # Extract version number using sed instead of grep -P
+      VERSION=$(basename "$file" | sed 's/^0*\([0-9]*\)_.*/\1/')
+      
+      if [ -z "$VERSION" ]; then
+        echo "Could not extract version from $file, skipping"
+        continue
+      fi
+      
+      if [ "$VERSION" -gt "$CURRENT_VERSION" ]; then
+        echo "Running migration $VERSION: $file"
+        if psql -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -f "$file"; then
+          psql -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "INSERT INTO schema_migrations (version, dirty) VALUES ($VERSION, false) ON CONFLICT (version) DO UPDATE SET dirty = false;"
+          echo "✓ Migration $VERSION completed successfully"
+          MIGRATIONS_RUN=$((MIGRATIONS_RUN + 1))
+        else
+          echo "✗ Migration $VERSION failed!"
+          exit 1
+        fi
+      else
+        echo "Skipping migration $VERSION (already applied)"
+      fi
+    done
+    
+    FINAL_VERSION=$(psql -h "${POSTGRES_HOST}" -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -t -c "SELECT COALESCE(MAX(version), 0) FROM schema_migrations;" | xargs)
+    
+    echo "========================================="
+    echo "Migration summary: $MIGRATIONS_RUN new migrations applied"
+    echo "Final version: $FINAL_VERSION"
+    echo "========================================="
+    echo "All migrations completed successfully!"

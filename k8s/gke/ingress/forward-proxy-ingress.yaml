@@ -1,0 +1,26 @@
+# Default Namespace : Do not add it to Layer8 NS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: forward-proxy-ingress
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.allow-http: "true"
+    cert-manager.io/issuer: letsencrypt-forward-proxy
+spec:
+  tls:
+    - secretName: forward-proxy-ssl-secret
+      hosts:
+        - fpdev.gc.layer8proxy.net 
+  ingressClassName: gce
+  rules:
+  - host: fpdev.gc.layer8proxy.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: forward-proxy
+            port:
+              number: 6191

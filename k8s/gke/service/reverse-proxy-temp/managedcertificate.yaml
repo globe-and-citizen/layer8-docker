@@ -1,0 +1,8 @@
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata:
+  name: reverse-proxy-cert
+  namespace: layer8
+spec:
+  domains:
+    - rpdevgc.layer8proxy.net

@@ -1,0 +1,16 @@
+# issuer-lets-encrypt-staging.yaml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: letsencrypt-auth-server
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: wasath.vt@gmail.com
+    profile: tlsserver
+    privateKeySecretRef:
+      name: letsencrypt-auth-server
+    solvers:
+    - http01:
+        ingress:
+          name: auth-server-ingress

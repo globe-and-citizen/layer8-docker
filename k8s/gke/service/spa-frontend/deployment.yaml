@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spa-frontend-sp1
+  namespace: layer8
+  labels:
+    app: spa-frontend-sp1
+    app.kubernetes.io/name: spa-frontend
+    app.kubernetes.io/component: frontend
+    sp-id: sp1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spa-frontend-sp1
+  template:
+    metadata:
+      labels:
+        app: spa-frontend-sp1
+        sp-id: sp1
+    spec:
+      containers:
+      - name: spa-frontend
+        image: dtpthao/spa-frontend:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5173
+          name: http
+        envFrom:
+        - secretRef:
+            name: spa-frontend-secret
+        stdin: true
+        tty: true
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 5173
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5173
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      restartPolicy: Always

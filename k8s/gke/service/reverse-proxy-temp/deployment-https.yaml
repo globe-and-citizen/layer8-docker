@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reverse-proxy-https
+  namespace: layer8
+  labels:
+    app: reverse-proxy-https
+    app.kubernetes.io/name: reverse-proxy-https
+    app.kubernetes.io/component: tls-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reverse-proxy-https
+  template:
+    metadata:
+      labels:
+        app: reverse-proxy-https
+    spec:
+      containers:
+      - name: reverse-proxy
+        image: dtpthao/reverse-proxy:stats-4
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6193
+          name: http
+
+        envFrom:
+        - secretRef:
+            name: reverse-proxy-standalone-secret
+
+        stdin: true
+        tty: true
+
+      restartPolicy: Always
