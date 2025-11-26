@@ -5,3 +5,4 @@
 **/.env
 auth-server/influxdb2-data
 auth-server/pg-data
+cache/
