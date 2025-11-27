@@ -1,4 +1,3 @@
-
 ## Generate CA (Certificate Authority):
 ### Generate CA private key
 ```shell
@@ -8,7 +7,7 @@ openssl genrsa -out ca.key 4096
 ### Generate CA certificate (self-signed, valid 10 years)
 ```shell
  openssl req -new -x509 -key ca.key -days 3650 -sha256 \
-  -subj "/C=US/ST=CA/L=SanFrancisco/O=GlobeAndCitizen/OU=Layer8/CN=mTLSRootCA" \
+  -subj "/C=VN/ST=Hanoi/L=Hanoi/O=GlobeAndCitizen/OU=Layer8/CN=mTLSRootCA" \
   -out ca.pem \
   -config config/ca-ext.cnf -extensions v3_ca
 ```
@@ -23,7 +22,7 @@ openssl genrsa -out reverse-proxy.key 4096
 ### CSR (Certificate Signing Request)
 ```shell
 openssl req -new -key reverse-proxy.key -out reverse-proxy.csr \
--subj "/C=US/ST=CA/L=SanFrancisco/O=GlobeAndCitizen/OU=Layer8/CN=reverse-proxy"
+-subj "/C=VN/ST=Hanoi/L=Hanoi/O=GlobeAndCitizen/OU=Layer8/CN=reverse-proxy"
 ```
 
 ### Sign CSR with CA
@@ -41,7 +40,7 @@ openssl genrsa -out forward-proxy.key 4096
 # CSR
 ```shell
 openssl req -new -key forward-proxy.key -out forward-proxy.csr \
--subj "/C=US/ST=CA/L=SanFrancisco/O=GlobeAndCitizen/OU=Layer8/CN=forward-proxy"
+-subj "/C=VN/ST=Hanoi/L=Hanoi/O=GlobeAndCitizen/OU=Layer8/CN=forward-proxy"
 ```
 
 # Sign CSR with CA
