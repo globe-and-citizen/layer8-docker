@@ -6,3 +6,9 @@
 auth-server/influxdb2-data
 auth-server/pg-data
 cache/
+
+/scripts/mtls/*.pem
+/scripts/mtls/*.key
+/scripts/mtls/*.crt
+/scripts/mtls/*.csr
+/scripts/mtls/*.srl
