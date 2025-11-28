@@ -16,10 +16,21 @@
     {
       "name": "gnc-pgdata",
       "efsVolumeConfiguration": {
-        "fileSystemId": "fs-0f892c71a8319de2f",
+        "fileSystemId": "fs-06689c5ce135bdf8a",
         "transitEncryption": "ENABLED",
         "authorizationConfig": {
-          "accessPointId": "fsap-0383c29aca0dd7aba",
+          "accessPointId": "fsap-0fd700194b4a7c4a4",
+          "iam": "ENABLED"
+        }
+      }
+    },
+    {
+      "name": "redis-data",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-06689c5ce135bdf8a",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "fsap-02473587f42b6f903",
           "iam": "ENABLED"
         }
       }
@@ -27,37 +38,36 @@
   ],
   "containerDefinitions": [
     {
-      "name": "gnc-backend-setup",
-      "image": "487414984390.dkr.ecr.ap-southeast-1.amazonaws.com/gnc-backend:draft0.3",
+      "name": "migrate",
+      "image": "dtpthao/gnc-backend:latest",
       "essential": true,
+      "command": [
+        "migrate",
+        "-path=/app/migrations",
+        "-database=postgres://globeandcitizen:masterkey@localhost:5432/gnc-db?sslmode=disable",
+        "up"
+      ],
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "gnc",
-          "awslogs-region": "ap-southeast-1",
+          "awslogs-group": "gnc-log",
+          "awslogs-region": "eu-west-1",
           "awslogs-stream-prefix": "ecs"
         }
       },
-      "environment": [
-        { "name": "API_URL", "value": "0.0.0.0:8080" },
-        { "name": "PORT", "value": "8080" },
-        { "name": "ENV", "value": "DEV" },
-        { "name": "DB_ADDR", "value": "postgres://admin:admin_password@localhost:5432/gnc-db?sslmode=disable" },
-        { "name": "DB_MAX_OPEN_CONNS", "value": "30" },
-        { "name": "DB_MAX_IDLE_CONNS", "value": "30" },
-        { "name": "DB_MAX_IDLE_TIME", "value": "15m" },
-        { "name": "CLOUDINARY_URL", "value": "cloudinary://953177367974311:lPRkA-981I_8j0-s4GXzYg2k79w@dhukt5f3r" },
-        { "name": "AUTH_BASIC_USERNAME", "value": "admin" },
-        { "name": "AUTH_BASIC_PASSWORD", "value": "admin" },
-        { "name": "DB_SETUP_MIGRATION_PATH", "value": "./migrations" }
-      ],
-      "command": [ "./migrate-arm64" ],
-      "linuxParameters": {
-        "initProcessEnabled": true
-      }
+      "dependsOn": [
+        {
+          "containerName": "postgres",
+          "condition": "HEALTHY"
+        },
+        {
+          "containerName": "redis",
+          "condition": "HEALTHY"
+        }
+      ]
     },
     {
-      "name": "gnc-postgres",
+      "name": "postgres",
       "image": "postgres:13",
       "essential": false,
       "portMappings": [
@@ -68,8 +78,8 @@
         }
       ],
       "environment": [
-        { "name": "POSTGRES_USER", "value": "admin" },
-        { "name": "POSTGRES_PASSWORD", "value": "admin_password" },
+        { "name": "POSTGRES_USER", "value": "globeandcitizen" },
+        { "name": "POSTGRES_PASSWORD", "value": "masterkey" },
         { "name": "POSTGRES_DB", "value": "gnc-db" }
       ],
       "mountPoints": [
@@ -82,15 +92,63 @@
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
-          "awslogs-group": "gnc",
-          "awslogs-region": "ap-southeast-1",
+          "awslogs-group": "gnc-log",
+          "awslogs-region": "eu-west-1",
           "awslogs-stream-prefix": "ecs"
         }
       },
       "healthCheck": {
-        "command": ["CMD-SHELL", "pg_isready -U admin"],
+        "command": ["CMD-SHELL", "pg_isready -U globeandcitizen"],
         "interval": 5,
         "timeout": 5,
+        "retries": 5,
+        "startPeriod": 10
+      }
+    },
+    {
+      "name": "redis",
+      "image": "redis:7",
+      "user": "1001",
+      "portMappings": [
+        {
+          "containerPort": 6379,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        {
+          "name": "REDIS_APPENDONLY",
+          "value": "yes"
+        },
+        {
+          "name": "REDIS_DISABLE_CHOWN",
+          "value": "1"
+        }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "redis-data",
+          "containerPath": "/data",
+          "readOnly": false
+        }
+      ],
+      "command": [
+        "redis-server",
+        "--appendonly", "yes",
+        "--dir", "/data"
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-region": "eu-west-1",
+          "awslogs-group": "gnc-log",
+          "awslogs-stream-prefix": "redis"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD", "redis-cli", "ping"],
+        "interval": 5,
+        "timeout": 3,
         "retries": 5,
         "startPeriod": 10
       }
