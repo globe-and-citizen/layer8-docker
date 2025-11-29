@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gnc-migration-script
+  namespace: layer8
+data:
+  run-migrations.sh: |
+    #!/bin/sh
+    set -e
+
+    echo "Starting GNC database migrations..."
+
+    # Set defaults
+    DB_HOST="${DB_HOST:-gnc-postgres.layer8.svc.cluster.local}"
+    DB_USER="${DB_USER:-globeandcitizen}"
+    DB_NAME="${DB_NAME:-stats-api-go}"
+    DB_PASSWORD="${DB_PASSWORD:-masterkey}"
+
+    # Construct database URL
+    DB_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:5432/${DB_NAME}?sslmode=disable"
+
+    echo "Database URL configured for ${DB_HOST}"
+
+    # Wait for database to be ready
+    echo "Waiting for database to be ready..."
+    until nc -z -v -w30 ${DB_HOST} 5432 2>/dev/null; do
+      echo "Waiting for database connection..."
+      sleep 2
+    done
+    echo "Database is ready!"
+
+    # Run migrations
+    echo "Running migrations from /app/migrations..."
+    migrate -path=/app/migrations -database="${DB_URL}" up
+
+    if [ $? -eq 0 ]; then
+      echo "========================================="
+      echo "All migrations completed successfully!"
+      echo "========================================="
+    else
+      echo "Migration failed!"
+      exit 1
+    fi
