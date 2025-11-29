@@ -5,4 +5,4 @@ metadata:
   namespace: layer8
 spec:
   domains:
-    - rpdevgc.layer8proxy.net
+    - rpdev.gc.layer8proxy.net
