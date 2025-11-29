@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gnc-backend
+  namespace: layer8
+  labels:
+    app: gnc-backend
+    app.kubernetes.io/name: gnc-backend
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gnc-backend
+  template:
+    metadata:
+      labels:
+        app: gnc-backend
+    spec:
+      initContainers:
+      - name: gnc-migrate
+        image: dtpthao/gnc-backend:latest
+        imagePullPolicy: IfNotPresent
+        workingDir: /app
+        command:
+        - migrate
+        - -path=/app/migrations
+        - -database=postgres://globeandcitizen:masterkey@gnc-postgres.layer8.svc.cluster.local:5432/stats-api-go?sslmode=disable
+        - up
+
+        envFrom:
+        - secretRef:
+            name: gnc-backend-secret
+
+      containers:
+      - name: gnc-backend
+        image: dtpthao/gnc-backend:latest
+        imagePullPolicy: IfNotPresent
+        workingDir: /app
+        command: ["./main"]
+        ports:
+        - containerPort: 8080
+          name: http
+        envFrom:
+        - secretRef:
+            name: gnc-backend-secret
+        stdin: true
+        tty: true
+        livenessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+
