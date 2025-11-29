@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: gnc-postgres
+  namespace: layer8
+  labels:
+    app: gnc-postgres
+    app.kubernetes.io/name: gnc-postgres
+    app.kubernetes.io/component: database
+spec:
+  serviceName: gnc-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gnc-postgres
+  template:
+    metadata:
+      labels:
+        app: gnc-postgres
+    spec:
+      containers:
+      - name: gnc-postgres
+        image: postgres:15
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 5432
+          name: postgres
+        envFrom:
+        - secretRef:
+            name: gnc-postgres-secret
+        volumeMounts:
+        - name: gnc-postgres-storage
+          mountPath: /var/lib/postgresql/data
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - globeandcitizen
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - globeandcitizen
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 5
+      volumes:
+      - name: gnc-postgres-storage
+        persistentVolumeClaim:
+          claimName: gnc-postgres-pvc
