@@ -1,0 +1,76 @@
+name: globeandcitizen
+
+services:
+  frontend:
+    image: dtpthao/gnc-frontend:docker #custom for each deployment
+    ports:
+      - "5173:5173"
+    restart: on-failure
+    stdin_open: true
+    tty: true
+
+  backend:
+    image: dtpthao/gnc-backend:latest
+    ports:
+      - "8080:8080"
+    command: ["./main"]
+    environment:
+      - PORT=8080
+      - API_URL=0.0.0.0:8080
+      - ENV=DEV
+      - DB_ADDR=postgres://globeandcitizen:masterkey@db:5432/stats-api-go?sslmode=disable
+      - DB_MAX_OPEN_CONNS=30
+      - DB_MAX_IDLE_CONNS=30
+      - DB_MAX_IDLE_TIME=15m
+      - CLOUDINARY_URL=cloudinary://953177367974311:lPRkA-981I_8j0-s4GXzYg2k79w@dhukt5f3r
+      - AUTH_BASIC_USERNAME=admin
+      - AUTH_BASIC_PASSWORD=admin
+      - REDIS_URL=redis://:S3cretP@ssw0rd@redis:6379/0
+#    env_file:
+#      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  db:
+    image: postgres:15
+    container_name: stats-api-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: globeandcitizen
+      POSTGRES_PASSWORD: masterkey
+      POSTGRES_DB: stats-api-go
+    volumes:
+      - ./cache/gnc-be-db:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U globeandcitizen" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./cache/gnc-be-redis:/data
+    command: ["redis-server", "--requirepass", "S3cretP@ssw0rd"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "S3cretP@ssw0rd", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    image: dtpthao/gnc-backend:latest
+    container_name: migrate
+    command: [ "migrate", "-path=/app/migrations", "-database=postgres://globeandcitizen:masterkey@db:5432/stats-api-go?sslmode=disable", "up" ]
+    depends_on:
+      db:
+        condition: service_healthy
+
