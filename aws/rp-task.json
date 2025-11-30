@@ -81,7 +81,7 @@
         }
       ],
       "essential": true,
-      "image": "dtpthao/reverse-proxy:stats-4",
+      "image": "dtpthao/reverse-proxy:latest",
       "linuxParameters": {
         "initProcessEnabled": true
       },
