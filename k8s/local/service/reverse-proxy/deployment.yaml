@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reverse-proxy-sp1
+  namespace: layer8
+  labels:
+    app: reverse-proxy-sp1
+    app.kubernetes.io/name: reverse-proxy
+    app.kubernetes.io/component: proxy
+    sp-id: sp1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reverse-proxy-sp1
+  template:
+    metadata:
+      labels:
+        app: reverse-proxy-sp1
+        sp-id: sp1
+    spec:
+      containers:
+      - name: reverse-proxy
+        ieage: dtpthao/reverse-proxy:stats-4
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6193
+          name: http
+
+        envFrom:
+        - secretRef:
+            name: reverse-proxy-standalone-secret
+
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+        # livenessProbe:
+        #   httpGet:
+        #     path: /l8_health_check
+        #     port: 6193
+        #   initialDelaySeconds: 30
+        #   periodSeconds: 10
+        #   timeoutSeconds: 5
+        #   failureThreshold: 3
+        # readinessProbe:
+        #   httpGet:
+        #     path: /l8_health_check
+        #     port: 6193
+        #   initialDelaySeconds: 10
+        #   periodSeconds: 5
+        #   timeoutSeconds: 3
+        #   failureThreshold: 3
+      restartPolicy: Always

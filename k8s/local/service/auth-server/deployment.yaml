@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-server
+  namespace: layer8
+  labels:
+    app: auth-server
+    app.kubernetes.io/name: auth-server
+    app.kubernetes.io/component: service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: auth-server
+  template:
+    metadata:
+      labels:
+        app: auth-server
+    spec:
+      initContainers:
+      - name: auth-setup
+        image: dtpthao/auth-server:statistics
+        imagePullPolicy: IfNotPresent
+        workingDir: /layer8-app
+        command: ["/bin/sh", "/scripts/run-migrations.sh"]
+
+        envFrom: 
+        - secretRef:
+            name: auth-setup-secrets
+
+        volumeMounts:
+        - name: migration-script
+          mountPath: /scripts
+          readOnly: true
+          
+      containers:
+      - name: auth-server
+        image: dtpthao/auth-server:statistics
+        imagePullPolicy: IfNotPresent
+        workingDir: /layer8-app
+        command: ["./main"]
+        ports:
+        - containerPort: 5001
+          name: http
+        envFrom:
+        - secretRef:
+            name: auth-setup-secrets
+        stdin: true
+        tty: true
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+            
+      volumes:
+      - name: migration-script
+        configMap:
+          name: auth-migration-script
+          defaultMode: 0755

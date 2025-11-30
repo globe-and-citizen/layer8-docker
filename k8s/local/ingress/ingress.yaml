@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: layer8-ingress
+  namespace: layer8
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: layer8.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: forward-proxy
+            port:
+              number: 6191
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: auth-server
+            port:
+              number: 5001

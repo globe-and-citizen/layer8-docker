@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: gnc-redis
+  namespace: layer8
+  labels:
+    app: gnc-redis
+    app.kubernetes.io/name: gnc-redis
+    app.kubernetes.io/component: database
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+    protocol: TCP
+    name: redis
+  selector:
+    app: gnc-redis

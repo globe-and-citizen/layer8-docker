@@ -2,7 +2,7 @@ name: Layer8
 
 services:
   forward-proxy:
-    image: dtpthao/forward-proxy:latest
+    image: dtpthao/forward-proxy:stats-5
     container_name: forward-proxy
     ports:
       - "6191:6191"
@@ -26,7 +26,7 @@ services:
       - "auth.layer8.com:10.10.10.103"
 
   reverse-proxy:
-    image: dtpthao/reverse-proxy:latest
+    image: dtpthao/reverse-proxy:stats-4
     container_name: reverse-proxy
     env_file:
       - ./reverse-proxy/.env
@@ -154,6 +154,44 @@ services:
       layer8-network:
         ipv4_address: 10.10.10.107
     restart: "no"
+
+  spa-backend:
+    image: dtpthao/spa-backend:latest
+    container_name: spa-backend
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
+      - JWT_SECRET=spa-backend-jwt-secret
+      - LAYER8_URL=http://localhost:5001
+      - LAYER8_CALLBACK_URL=http://localhost:5173/oauth2/callback
+      - LAYER8_RESOURCE_URL=http://localhost:5001/api/user
+      - LAYER8_UUID=26d6f8b5-9438-4556-872b-d60535d8d3c8
+      - LAYER8_SECRET=4a73983ffd5fecfd8f6f2792121a6658
+    ports:
+      - "3000:3000"
+    restart: on-failure
+    stdin_open: true
+    tty: true
+    networks:
+      layer8-network:
+        ipv4_address: 10.10.10.108
+
+  spa-frontend:
+    image: dtpthao/spa-frontend:latest
+    container_name: spa-frontend
+    environment:
+      - HOST=0.0.0.0
+      - PORT=5173
+      - VITE_BACKEND_URL=http://10.10.10.102:6193
+      - VITE_FORWARD_PROXY_URL=http://localhost:6191
+    ports:
+      - "5173:5173"
+    restart: on-failure
+    stdin_open: true
+    tty: true
+    networks:
+      layer8-network:
+        ipv4_address: 10.10.10.109
 
 networks:
   layer8-network:

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: gnc-redis
+  namespace: layer8
+  labels:
+    app: gnc-redis
+    app.kubernetes.io/name: gnc-redis
+    app.kubernetes.io/component: database
+spec:
+  serviceName: gnc-redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gnc-redis
+  template:
+    metadata:
+      labels:
+        app: gnc-redis
+    spec:
+      containers:
+      - name: gnc-redis
+        image: redis:7-alpine
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 6379
+          name: redis
+        command:
+        - redis-server
+        - --requirepass
+        - S3cretP@ssw0rd
+        volumeMounts:
+        - name: gnc-redis-storage
+          mountPath: /data
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - -a
+            - S3cretP@ssw0rd
+            - ping
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 5
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - -a
+            - S3cretP@ssw0rd
+            - ping
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 5
+      volumes:
+      - name: gnc-redis-storage
+        persistentVolumeClaim:
+          claimName: gnc-redis-pvc

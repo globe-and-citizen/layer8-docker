@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: spa-backend-sp1
+  namespace: layer8
+  labels:
+    app: spa-backend-sp1
+    sp-id: sp1
+spec:
+  type: NodePort
+  ports:
+  - port: 3000
+    targetPort: 3000
+    nodePort: 30000
+    protocol: TCP
+    name: http
+  selector:
+    app: spa-backend-sp1

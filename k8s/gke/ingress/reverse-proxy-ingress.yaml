@@ -1,0 +1,28 @@
+# Default Namespace : Do not add it to Layer8 NS
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: reverse-proxy-ingress
+  annotations:
+    kubernetes.io/ingress.class: gce
+    kubernetes.io/ingress.allow-http: "true"
+    # cert-manager.io/issuer: letsencrypt-reverse-proxy
+    networking.gke.io/managed-certificates: ""
+
+spec:
+  tls:
+    - secretName: reverse-proxy-ssl-secret-new
+      hosts:
+         - rpdev.gc.layer8proxy.net 
+  ingressClassName: gce
+  rules:
+  - host: rpdev.gc.layer8proxy.net
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: reverse-proxy-sp1
+            port:
+              number: 6193
