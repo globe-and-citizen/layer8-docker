@@ -1,0 +1,63 @@
+{
+  "family": "layer8-auth-postgresdb",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "executionRoleArn": "arn:aws:iam::487414984390:role/layer8-ecs-task-exe",
+  "taskRoleArn": "arn:aws:iam::487414984390:role/layer8-ecs-task-exe",
+  "volumes": [
+    {
+      "name": "pgdata",
+      "efsVolumeConfiguration": {
+        "fileSystemId": "fs-07edaf4b8a5653b58",
+        "transitEncryption": "ENABLED",
+        "authorizationConfig": {
+          "accessPointId": "fsap-06ded9d0cc55ff8eb",
+          "iam": "ENABLED"
+        }
+      }
+    }
+  ],
+  "containerDefinitions": [
+    {
+      "name": "auth-postgres",
+      "image": "postgres:13",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 5432,
+          "hostPort": 5432,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "POSTGRES_USER", "value": "layer8development" },
+        { "name": "POSTGRES_PASSWORD", "value": "cRACtIeRChYsiNFinuMp" },
+        { "name": "POSTGRES_DB", "value": "development" }
+      ],
+      "mountPoints": [
+        {
+          "sourceVolume": "pgdata",
+          "containerPath": "/var/lib/postgresql/data",
+          "readOnly": false
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "layer8",
+          "awslogs-region": "ap-southeast-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "pg_isready -U layer8development"],
+        "interval": 5,
+        "timeout": 5,
+        "retries": 5,
+        "startPeriod": 10
+      }
+    }
+  ]
+}
