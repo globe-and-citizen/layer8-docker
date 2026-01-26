@@ -44,7 +44,7 @@ services:
       POSTGRES_PASSWORD: masterkey
       POSTGRES_DB: stats-api-go
     volumes:
-      - ./cache/gnc-be-db:/var/lib/postgresql/data
+      - ./tmp/gnc-be-db:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U globeandcitizen" ]
       interval: 5s
@@ -58,7 +58,7 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - ./cache/gnc-be-redis:/data
+      - ./tmp/gnc-be-redis:/data
     command: ["redis-server", "--requirepass", "S3cretP@ssw0rd"]
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "S3cretP@ssw0rd", "ping"]

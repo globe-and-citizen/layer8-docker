@@ -1,4 +1,4 @@
-name: Layer8
+name: demo-spa-app
 
 services:
   spa-backend:
@@ -18,9 +18,6 @@ services:
     restart: on-failure
     stdin_open: true
     tty: true
-    networks:
-      layer8-network:
-        ipv4_address: 10.10.10.108
 
   spa-frontend:
     image: dtpthao/spa-frontend:latest
@@ -35,13 +32,3 @@ services:
     restart: on-failure
     stdin_open: true
     tty: true
-    networks:
-      layer8-network:
-        ipv4_address: 10.10.10.109
-
-networks:
-  layer8-network:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 10.10.10.0/24
