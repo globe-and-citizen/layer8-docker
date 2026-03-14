@@ -1,0 +1,176 @@
+name: Layer8
+
+services:
+  step-ca:
+    image: smallstep/step-ca:latest
+    container_name: step-ca
+    hostname: step-ca
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./acme/step:/home/step
+    environment:
+      - DOCKER_STEPCA_INIT_NAME=Local CA
+      - DOCKER_STEPCA_INIT_DNS_NAMES=step-ca,localhost
+      - DOCKER_STEPCA_INIT_ADDRESS=:9000
+      #      - DOCKER_STEPCA_INIT_PROVISIONER_NAME=admin -> this is for JWK provisioner (default "admin")
+      - DOCKER_STEPCA_INIT_PASSWORD=password
+      - DOCKER_STEPCA_INIT_ACME=true
+    networks:
+      - layer8-network
+
+  fp-cert-agent:
+    image: smallstep/step-cli
+    hostname: forward-proxy
+    depends_on:
+      - step-ca
+    volumes:
+      - ./forward-proxy/renew_cert.sh:/renew.sh
+      - ./acme/step/certs:/certs
+    environment:
+      - CERT_PATH=/certs/client.crt
+      - KEY_PATH=/certs/client.key
+      - ROOT_PATH=/certs/root_ca.crt
+      - CA_URL=https://step-ca:9000
+    entrypoint: sh /renew.sh
+    restart: unless-stopped
+    networks:
+      - layer8-network
+    expose:
+      - "80"
+
+  forward-proxy:
+    image: dtpthao/forward-proxy:0.4.0
+    container_name: forward-proxy
+    ports:
+      - "6191:6191"
+    env_file:
+      - ./forward-proxy/.env
+    volumes:
+      - ./logs/fp:/var/log/layer8
+      - ./acme/step/certs:/certs
+    restart: on-failure
+    stdin_open: true
+    tty: true
+    networks:
+      layer8-network:
+        ipv4_address: 10.10.10.101
+    depends_on:
+      influxdb2:
+        condition: service_healthy
+      server:
+        condition: service_started
+
+  rp-cert-agent:
+    image: smallstep/step-cli:latest
+    container_name: rp-cert-agent
+    hostname: reverse-proxy
+    depends_on:
+      - step-ca
+    volumes:
+      - ./reverse-proxy/renew_cert.sh:/renew_cert.sh
+      - ./reverse-proxy/certs:/certs
+    environment:
+      - CA_URL=https://step-ca:9000
+      - CERT_NAME=reverse-proxy
+      - CERT_PATH=/certs/server.crt
+      - KEY_PATH=/certs/server.key
+      - ROOT_PATH=/certs/root_ca.crt
+      # each san must be accessible for step-ca -> except service hostname, you should add other sans to aliases
+      - SANS=reverse-proxy reverse.proxy
+    entrypoint: sh /renew_cert.sh
+    restart: unless-stopped
+    networks:
+      layer8-network:
+        aliases:
+          - reverse.proxy
+
+  reverse-proxy:
+    image: dtpthao/reverse-proxy:0.4.0
+    container_name: reverse-proxy
+    env_file:
+      - ./reverse-proxy/.env
+    ports:
+      - "6193:6193"
+    volumes:
+      - ./logs/rp:/var/log/layer8
+      - ./reverse-proxy/certs:/certs
+    restart: on-failure
+    stdin_open: true
+    tty: true
+    networks:
+      layer8-network:
+        ipv4_address: 10.10.10.102
+
+  server:
+    image: dtpthao/auth-server:0.4.01
+    container_name: server
+    env_file:
+      - ./auth-server/.env
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      influxdb2:
+        condition: service_healthy
+    restart: on-failure
+    stdin_open: true
+    tty: true
+    networks:
+      layer8-network:
+        ipv4_address: 10.10.10.103
+
+  influxdb2:
+    container_name: influxdb2
+    image: influxdb:2
+    restart: always
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./tmp/influxdb2-data:/var/lib/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=somethingthatyoudontknow
+      - DOCKER_INFLUXDB_INIT_ORG=layer8org
+      - DOCKER_INFLUXDB_INIT_BUCKET=layer8bucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=DEFAULT_TOKEN_FOR_TESTING
+      - DOCKER_INFLUXDB_INIT_RETENTION=30d
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8086/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      layer8-network:
+        ipv4_address: 10.10.10.104
+
+  postgres:
+    container_name: postgres
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=layer8
+      - POSTGRES_PASSWORD=cRACtIeRChYsiNFinuMp
+      - POSTGRES_DB=layer8db
+    volumes:
+      - ./tmp/pg-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U layer8development" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      layer8-network:
+        ipv4_address: 10.10.10.105
+
+networks:
+  layer8-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.10.0/24

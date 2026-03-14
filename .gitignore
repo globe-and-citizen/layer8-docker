@@ -12,3 +12,5 @@ cache/
 /scripts/mtls/*.crt
 /scripts/mtls/*.csr
 /scripts/mtls/*.srl
+/acme
+/reverse-proxy/certs
