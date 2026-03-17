@@ -1,41 +1,77 @@
 #!/bin/sh
 set -e
 
-echo "Waiting for step-ca..."
+CA_SERVER_URL=${CA_SERVER_URL:?CA_SERVER_URL must be set}
+CERT_NAME=${CERT_NAME:=reverse-proxy}
+CA_PATH=${CA_PATH:=/certs/root_ca.crt}
+CERT_PATH=${CERT_PATH:=/certs/server.crt}
+KEY_PATH=${KEY_PATH:=/certs/server.key}
 
-until nc -z step-ca 9000; do
+echo "Initializing directories..."
+mkdir -p /certs "$(dirname "$CERT_PATH")"
+
+#echo "Waiting for step-ca..."
+#
+#until curl -s ${CA_SERVER_URL}/health >/dev/null; do
+#  sleep 1
+#done
+
+# ----------------------------
+# Download root CA
+# ----------------------------
+echo "Downloading root CA..."
+
+until curl -fsSL -k "${CA_SERVER_URL}/roots.pem" -o "${CA_PATH}"; do
+  echo "Failed to download root CA. Retrying in 2s..."
   sleep 2
 done
 
-echo "Downloading root CA..."
+# ----------------------------
+# Bootstrap step CLI
+# ----------------------------
+echo "Bootstrapping step CLI..."
 
-curl -k ${CA_URL}/roots.pem -o ${ROOT_PATH}
+step ca bootstrap \
+  --ca-url "${CA_SERVER_URL}" \
+  --fingerprint "$(step certificate fingerprint "${CA_PATH}")"
 
-echo "Ensuring server certificate exists..."
-
-if [ ! -f ${CERT_PATH} ]; then
-  echo "Requesting server certificate..."
+# ----------------------------
+# Request certificate (ACME HTTP-01)
+# ----------------------------
+if [ ! -f "${CERT_PATH}" ] || [ ! -f "${KEY_PATH}" ]; then
+  echo "Requesting certificate..."
 
   SAN_ARGS=""
   for san in $SANS; do
     SAN_ARGS="$SAN_ARGS --san $san"
   done
 
-  step ca certificate \
+  until step ca certificate \
     ${CERT_NAME} \
     ${CERT_PATH} \
     ${KEY_PATH} \
     $SAN_ARGS \
-    --ca-url ${CA_URL} \
-    --root ${ROOT_PATH} \
-    --provisioner acme
+    --ca-url ${CA_SERVER_URL} \
+    --root ${CA_PATH} \
+    --provisioner acme; do
+
+    echo "Certificate request failed. Retrying in 5s..."
+    sleep 5
+  done
+
+  echo "Certificate obtained"
+else
+  echo "Certificate already exists, skipping request"
 fi
 
-echo "Starting renewal daemon..."
+# ----------------------------
+# Start renewal daemon (background)
+# ----------------------------
+echo "Starting automatic renewal daemon..."
 
 exec step ca renew \
   ${CERT_PATH} \
   ${KEY_PATH} \
-  --ca-url ${CA_URL} \
-  --root ${ROOT_PATH} \
+  --ca-url ${CA_SERVER_URL} \
+  --root ${CA_PATH} \
   --daemon
