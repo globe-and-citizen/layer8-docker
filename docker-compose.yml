@@ -9,7 +9,7 @@ services:
     env_file:
       - ./forward-proxy/.env
     volumes:
-      - ./logs/fp:/var/log/layer8
+      - ./tmp/logs/fp:/var/log/layer8
     restart: on-failure
     stdin_open: true
     tty: true
@@ -31,7 +31,7 @@ services:
     ports:
       - "6193:6193"
     volumes:
-      - ./logs/rp:/var/log/layer8
+      - ./tmp/logs/rp:/var/log/layer8
     restart: on-failure
     stdin_open: true
     tty: true
