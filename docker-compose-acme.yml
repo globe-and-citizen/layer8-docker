@@ -20,28 +20,8 @@ services:
     networks:
       - layer8-network
 
-#  fp-cert-agent:
-#    image: smallstep/step-cli
-#    hostname: forward-proxy
-#    depends_on:
-#      - step-ca
-#    volumes:
-#      - ./forward-proxy/renew_cert.sh:/renew.sh
-#      - ./acme/step/certs:/certs
-#    environment:
-#      - CERT_PATH=/certs/client.crt
-#      - KEY_PATH=/certs/client.key
-#      - ROOT_PATH=/certs/root_ca.crt
-#      - CA_URL=https://step-ca:9000
-#    entrypoint: sh /renew.sh
-#    restart: unless-stopped
-#    networks:
-#      - layer8-network
-#    expose:
-#      - "80"
-
   forward-proxy:
-    image: dtpthao/forward-proxy:0.4.05-arm
+    image: dtpthao/forward-proxy:0.4.07-arm
     container_name: forward-proxy
     ports:
       - "6191:6191"
@@ -53,11 +33,12 @@ services:
       - CERT_PATH=/certs/client.crt
       - KEY_PATH=/certs/client.key
       - CA_PATH=/certs/root_ca.crt
+      - RENEW_INTERVAL=10
     volumes:
       - ./logs/fp:/var/log/layer8
       - ./forward-proxy/certs:/certs
-#      - ./forward-proxy/renew_cert.sh:/scripts/renew_cert.sh
-#      - ./forward-proxy/entrypoint.sh:/scripts/entrypoint.sh
+#      - ./scripts/renew_cert.sh:/scripts/renew_cert.sh
+#      - ./scripts/entrypoint.sh:/scripts/entrypoint.sh
     restart: on-failure
     stdin_open: true
     tty: true
@@ -67,32 +48,8 @@ services:
     depends_on:
       influxdb2:
         condition: service_healthy
-      server:
+      step-ca:
         condition: service_started
-
-#  rp-cert-agent:
-#    image: smallstep/step-cli:latest
-#    container_name: rp-cert-agent
-#    hostname: reverse-proxy
-#    depends_on:
-#      - step-ca
-#    volumes:
-#      - ./reverse-proxy/renew_cert.sh:/renew_cert.sh
-#      - ./reverse-proxy/certs:/certs
-#    environment:
-#      - CA_URL=https://step-ca:9000
-#      - CERT_NAME=reverse-proxy
-#      - CERT_PATH=/certs/server.crt
-#      - KEY_PATH=/certs/server.key
-#      - ROOT_PATH=/certs/root_ca.crt
-#      # each san must be accessible for step-ca -> except service hostname, you should add other sans to aliases
-#      - SANS=reverse-proxy reverse.proxy
-#    entrypoint: sh /renew_cert.sh
-#    restart: unless-stopped
-#    networks:
-#      layer8-network:
-#        aliases:
-#          - reverse.proxy
 
   reverse-proxy:
     image: dtpthao/reverse-proxy:0.4.1
@@ -104,8 +61,8 @@ services:
     volumes:
       - ./logs/rp:/var/log/layer8
       - ./reverse-proxy/certs:/certs
-#      - ./reverse-proxy/renew_cert.sh:/scripts/renew_cert.sh
-#      - ./reverse-proxy/entrypoint.sh:/scripts/entrypoint.sh
+#      - ./scripts/renew_cert.sh:/scripts/renew_cert.sh
+#      - ./scripts/entrypoint.sh:/scripts/entrypoint.sh
     environment:
       - CA_SERVER_URL=https://step-ca:9000
       - CERT_NAME=reverse-proxy
@@ -114,6 +71,7 @@ services:
       - CA_PATH=/certs/root_ca.crt
       # each san must be accessible for step-ca -> except service hostname, you should add other sans to aliases
       - SANS=reverse-proxy reverse.proxy
+      - RENEW_INTERVAL=10
     restart: on-failure
     stdin_open: true
     tty: true
