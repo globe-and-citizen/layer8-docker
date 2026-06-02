@@ -1,0 +1,19 @@
+{
+  "name": "layer8-e2e-test",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.ts",
+  "scripts": {
+    "e2e": "chmod +x run.sh && ./run.sh docker-compose-e2e.yml",
+    "e2e:local": "chmod +x run.sh && ./run.sh docker-compose-e2e.local.yml"
+  },
+  "dependencies": {
+    "@playwright/test": "^1.60.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1"
+  }
+}

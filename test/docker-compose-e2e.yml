@@ -1,0 +1,179 @@
+name: layer8-e2e
+
+networks:
+  layer8-e2e:
+    driver: bridge
+
+volumes:
+  step-ca-data:
+  fp-certs:
+  rp-certs:
+
+services:
+
+  # ── Certificate Authority ────────────────────────────────────────────────────
+  step-ca:
+    image: smallstep/step-ca:latest
+    environment:
+      DOCKER_STEPCA_INIT_NAME: "Layer8 E2E CA"
+      DOCKER_STEPCA_INIT_DNS_NAMES: "step-ca,localhost"
+      DOCKER_STEPCA_INIT_ACME: "true"
+    volumes:
+      - step-ca-data:/home/step
+    networks:
+      - layer8-e2e
+    restart: unless-stopped
+
+  # ── Metrics store ────────────────────────────────────────────────────────────
+  influxdb2:
+    image: influxdb:2
+    restart: always
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=somethingthatyoudontknow
+      - DOCKER_INFLUXDB_INIT_ORG=layer8org
+      - DOCKER_INFLUXDB_INIT_BUCKET=layer8bucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=DEFAULT_TOKEN_FOR_TESTING
+      - DOCKER_INFLUXDB_INIT_RETENTION=30d
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8086/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - layer8-e2e
+
+  postgres:
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_USER=layer8
+      - POSTGRES_PASSWORD=cRACtIeRChYsiNFinuMp
+      - POSTGRES_DB=layer8db
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U layer8" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - layer8-e2e
+
+  # ── Auth server ────────────────────────────────────────────────────────────────
+  auth-server:
+    build:
+      context: https://github.com/globe-and-citizen/layer8-auth-server.git#main
+    env_file:
+      - .env.auth
+    ports:
+      - "5001:5001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      influxdb2:
+        condition: service_healthy
+    restart: on-failure
+    stdin_open: true
+    tty: true
+    networks:
+      - layer8-e2e
+
+  # ── Forward Proxy ────────────────────────────────────────────────────────────
+  forward-proxy:
+    build:
+      context: https://github.com/globe-and-citizen/layer8-backbone.git#main
+      dockerfile: forward-proxy/Dockerfile
+    env_file:
+      - .env.fp
+    environment:
+      # Certificate renewal env vars consumed by certs/scripts/entrypoint.sh and renew_cert.sh
+      CA_SERVER_URL: https://step-ca:9000
+      CERT_NAME: forward-proxy
+      CA_PATH: /certs/root_ca.crt
+      CERT_PATH: /certs/client.crt
+      KEY_PATH: /certs/client.key
+    volumes:
+      - fp-certs:/certs
+    ports:
+      - "6191:6191"
+    depends_on:
+      influxdb2:
+        condition: service_healthy
+      auth-server:
+        condition: service_started
+      step-ca:
+        condition: service_started
+    networks:
+      - layer8-e2e
+    restart: on-failure
+
+  # ── Reverse Proxy ────────────────────────────────────────────────────────────
+  reverse-proxy:
+    build:
+      context: https://github.com/globe-and-citizen/layer8-backbone.git#main
+      dockerfile: reverse-proxy/Dockerfile
+    env_file:
+      - .env.rp
+    environment:
+      # Certificate renewal env vars consumed by certs/scripts/entrypoint.sh and renew_cert.sh
+      CA_SERVER_URL: https://step-ca:9000
+      CERT_NAME: reverse-proxy
+      CA_PATH: /certs/root_ca.crt
+      CERT_PATH: /certs/server.crt
+      KEY_PATH: /certs/server.key
+      # Ensure the ACME HTTP-01 challenge uses the correct hostname SAN
+      SANS: reverse-proxy
+    volumes:
+      - rp-certs:/certs
+    ports:
+      - "6193:6193"
+    depends_on:
+      spa-backend:
+        condition: service_healthy
+      step-ca:
+        condition: service_started
+    networks:
+      - layer8-e2e
+    restart: on-failure
+
+  # ── Demo SPA backend (target for the Reverse Proxy) ──────────────────────────
+  spa-backend:
+    build:
+      context: https://github.com/globe-and-citizen/layer8-backbone.git#main:spa/backend
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      JWT_SECRET: e2e-backend-jwt-secret
+    ports:
+      - "3000:3000"
+    networks:
+      - layer8-e2e
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/healthcheck"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Demo SPA frontend ────────────────────────────────────────────────────────
+  spa-frontend:
+    build:
+      context: https://github.com/globe-and-citizen/layer8-backbone.git#main:spa/frontend
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "5173"
+      VITE_BACKEND_URL: https://reverse-proxy:6193
+      VITE_FORWARD_PROXY_URL: http://localhost:6191
+      VITE_ENABLE_LAYER8: true
+    ports:
+      - "5173:5173"
+    networks:
+      - layer8-e2e
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5173/healthcheck"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
