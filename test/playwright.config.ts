@@ -1,4 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
+import {defineConfig, devices} from '@playwright/test';
 
 /**
  * Read environment variables from file.
@@ -10,23 +10,22 @@ import { defineConfig, devices } from '@playwright/test';
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
+    // Folder where tests are located ('.' = project root)
     testDir: '.',
-    /* Run tests in files in parallel */
-    fullyParallel: true,
-    /* Fail the build on CI if you accidentally left test.only in the source code. */
+    // If true: tests across files run in parallel.
+    // If false: tests inside a single file run sequentially.
+    fullyParallel: false,
+    // Number of parallel worker processes (concurrent test runners)
+    workers: 1,
+    // Fail the run in CI if any test uses `.only`
     forbidOnly: !!process.env.CI,
-    /* Retry on CI only */
+    // Retry failed tests: 2 in CI, 0 locally
     retries: process.env.CI ? 2 : 0,
-    /* Opt out of parallel tests on CI. */
-    workers: process.env.CI ? 1 : undefined,
-    /* Reporter to use. See https://playwright.dev/docs/test-reporters */
+    // Test results reporter (here: HTML)
     reporter: 'html',
-    /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
+    // Shared options applied to all tests
     use: {
-        /* Base URL to use in actions like `await page.goto('/')`. */
-        // baseURL: 'http://127.0.0.1:3000',
-
-        /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+        // Collect trace on the first retry of a failed test
         trace: 'on-first-retry',
     },
 
@@ -38,7 +37,7 @@ export default defineConfig({
         // },
         {
             name: 'firefox',
-            use: { ...devices['Desktop Firefox'] },
+            use: {...devices['Desktop Firefox']},
         },
         //
         // {

@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+COMPOSE_FILE="$1"
+
+wait_for_auth_server() {
+  # Begin waiting for the auth-server to become available.
+  echo "Waiting for auth-server..."
+
+  # Continuously check the auth-server logs until the startup line appears.
+  # Redirect stderr to stdout so grep sees all output from docker compose.
+  until docker compose -f "$COMPOSE_FILE" logs auth-server 2>&1 | \
+    # Search for the exact server startup message indicating readiness.
+    grep -q "Server start at: http://0.0.0.0:5001"
+  do
+    # Message not found yet — pause briefly before the next attempt.
+    sleep 1
+  done
+
+  # Loop exited: auth-server reported it started successfully.
+  echo "auth-server is ready"
+}
+
+docker compose -f "$COMPOSE_FILE" up -d --build
+
+wait_for_auth_server
+
+npx playwright test auth.e2e.spec.ts --workers=1 --reporter=line
+
+# Tear down the test environment after tests complete.
+docker compose -f "$COMPOSE_FILE" down -v
