@@ -7,8 +7,11 @@
   "type": "commonjs",
   "main": "index.ts",
   "scripts": {
+    "e2e-build": "chmod +x run.sh && ./run.sh docker-compose-e2e.yml --build",
     "e2e": "chmod +x run.sh && ./run.sh docker-compose-e2e.yml",
-    "e2e:local": "chmod +x run.sh && ./run.sh docker-compose-e2e.local.yml"
+    "e2e-local-build": "chmod +x run.sh && ./run.sh docker-compose-e2e.local.yml --build",
+    "e2e-local": "chmod +x run.sh && ./run.sh docker-compose-e2e.local.yml",
+    "e2e-clean": "docker compose -f docker-compose-e2e.yml down -v && docker compose -f docker-compose-e2e.local.yml down -v"
   },
   "dependencies": {
     "@playwright/test": "^1.60.0"

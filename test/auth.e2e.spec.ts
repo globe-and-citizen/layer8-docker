@@ -77,8 +77,6 @@ test.describe.serial('Layer8 E2E', () => {
         // Wait for registration API response.
         const registerResp = await registerPromise;
 
-        console.log(registerResp);
-
         // Verify registration succeeded.
         expect(registerResp.ok()).toBeTruthy();
 
@@ -161,27 +159,29 @@ test.describe.serial('Layer8 E2E', () => {
             console.log('APP CONSOLE:', msg.text());
         });
 
+        const responsePromise = page.waitForResponse(
+            response => response.url().includes('/init-tunnel')
+        );
+
         /*
          * Open the test page which initializes the tunnel. Layer8 responds with a 200 if the tunnel is ready, otherwise
          * the page shows an error message.
          */
-        await page.goto('http://localhost:5173');
+        await page.goto('http://localhost:5173/');
 
-        let encrypted_response = await page.waitForResponse(
-            response => response.url().includes('/init-tunnel')
-        );
+        let init_response = await responsePromise;
 
         // expect no page errors during tunnel initialization
         expect(errors).toEqual([]);
-        expect(encrypted_response.ok()).toBeTruthy();
-        expect(encrypted_response.status()).toBe(200);
+        expect(init_response.ok()).toBeTruthy();
+        expect(init_response.status()).toBe(200);
 
         /*
          * Click the "test" button — triggers a request to /ravi-test which Layer8 intercepts and proxies to /proxy.
          */
         await page.getByRole('button', {name: 'test'}).click();
 
-        encrypted_response = await page.waitForResponse(
+        const encrypted_response = await page.waitForResponse(
             response => response.url().includes('/proxy')
         );
 

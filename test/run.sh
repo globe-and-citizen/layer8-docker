@@ -2,6 +2,11 @@
 set -euo pipefail
 
 COMPOSE_FILE="$1"
+if [ "${2:-}" = "--build" ]; then
+  BUILD_OPTION="--build"
+else
+  BUILD_OPTION=""
+fi
 
 wait_for_auth_server() {
   # Begin waiting for the auth-server to become available.
@@ -21,7 +26,7 @@ wait_for_auth_server() {
   echo "auth-server is ready"
 }
 
-docker compose -f "$COMPOSE_FILE" up -d --build
+docker compose -f "$COMPOSE_FILE" up -d ${BUILD_OPTION:+$BUILD_OPTION}
 
 wait_for_auth_server
 
