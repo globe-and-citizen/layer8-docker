@@ -30,6 +30,14 @@ docker compose -f "$COMPOSE_FILE" up -d ${BUILD_OPTION:+$BUILD_OPTION}
 
 wait_for_auth_server
 
+# Check if Playwright is installed locally; if not, install it and the necessary browsers.
+if ! npx --no-install playwright --version >/dev/null 2>&1; then
+  echo "Playwright is not installed. Installing Playwright..."
+  npm install --no-audit --no-fund -D @playwright/test
+fi
+echo "Ensuring Playwright browsers are installed..."
+npx playwright install --with-deps
+
 npx playwright test auth.e2e.spec.ts --workers=1 --reporter=line
 
 # Tear down the test environment after tests complete.
