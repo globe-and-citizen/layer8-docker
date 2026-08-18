@@ -6,6 +6,7 @@
 auth-server/influxdb2-data
 auth-server/pg-data
 cache/
+**/.venv
 
 /scripts/mtls/*.pem
 /scripts/mtls/*.key

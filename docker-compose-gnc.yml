@@ -2,51 +2,84 @@ name: globeandcitizen
 
 services:
   frontend:
-    image: dtpthao/gnc-frontend:docker #custom for each deployment
+    image: dtpthao/gnc-frontend:240726 #custom for each deployment
     ports:
-      - "5173:5173"
+      - "5173:80"
+#      - "80:80"
+    environment:
+      - VITE_API_BASE_URL=https://rp.layer8proxy.net/v1
+      - VITE_FORWARD_PROXY_URL=https://fp.layer8proxy.net
+      - VITE_LAYER8_BASE_URL_PROD=https://layer8proxy.net
+      - VITE_LAYER8_ENABLED=true
     restart: on-failure
     stdin_open: true
     tty: true
 
   backend:
-    image: dtpthao/gnc-backend:latest
+    image: gnc-backend:1706261-api
     ports:
       - "8080:8080"
-    command: ["./main"]
+#    command: ["./main"]
     environment:
-      - PORT=8080
-      - API_URL=0.0.0.0:8080
       - ENV=DEV
-      - DB_ADDR=postgres://globeandcitizen:masterkey@db:5432/stats-api-go?sslmode=disable
-      - DB_MAX_OPEN_CONNS=30
+      - API_URL=0.0.0.0:8080
+      - PORT=8080
+      - AUTH_BASIC_PASSWORD=admin
+      - AUTH_BASIC_USERNAME=admin
+      - CLOUDINARY_URL=cloudinary://953177367974311:lPRkA-981I_8j0-s4GXzYg2k79w@dhukt5f3r
+#      - DB_ADDR=postgres://gcnow:masterkey@gcnow-db:5432/stats-api-go?sslmode=disable
+      - DB_ADDR=postgres://gcnow:masterkey@gcnow-db:5432/gcnow-db?sslmode=disable
       - DB_MAX_IDLE_CONNS=30
       - DB_MAX_IDLE_TIME=15m
-      - CLOUDINARY_URL=cloudinary://953177367974311:lPRkA-981I_8j0-s4GXzYg2k79w@dhukt5f3r
-      - AUTH_BASIC_USERNAME=admin
-      - AUTH_BASIC_PASSWORD=admin
-      - REDIS_URL=redis://:S3cretP@ssw0rd@redis:6379/0
-#    env_file:
-#      - .env
+      - DB_MAX_OPEN_CONNS=30
+      - LAYER8_BASE_URL=http://host.docker.internal:5001
+      - LAYER8_CALLBACK_URL=http://localhost:5173/oauth2/callback
+      - LAYER8_SECRET=c4161709b1e07de0fc515d1af46cac53
+      - LAYER8_UUID=f76c02e1-2018-411c-b0f7-6f5e040be6c4
+      - REDIS_URL=redis://:S3cretP%40ssw0rd@redis:6379/0
+      - OAUTH2_COOKIE_HTTP_ONLY=true
+      - OAUTH2_COOKIE_SECURE=false
+      - OAUTH2_COOKIE_SAME_SITE=2
+    volumes:
+      - ./gcnow-spa/.env.be.dev:/app/.env
     depends_on:
-      db:
+      gcnow-db:
         condition: service_healthy
       redis:
         condition: service_healthy
 
-  db:
+  backend-cron:
+    image: gnc-backend:1206261-cron
+    environment:
+      - ENV=DEV
+      - AUTH_BASIC_PASSWORD=admin
+      - AUTH_BASIC_USERNAME=admin
+      - CLOUDINARY_URL=cloudinary://953177367974311:lPRkA-981I_8j0-s4GXzYg2k79w@dhukt5f3r
+      - DB_ADDR=postgres://gcnow:masterkey@gcnow-db:5432/stats-api-go?sslmode=disable
+      - DB_MAX_IDLE_CONNS=30
+      - DB_MAX_IDLE_TIME=15m
+      - DB_MAX_OPEN_CONNS=30
+      - REDIS_URL=redis://:S3cretP%40ssw0rd@redis:6379/0
+    depends_on:
+      gcnow-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  gcnow-db:
     image: postgres:15
     container_name: stats-api-db
     ports:
-      - "5432:5432"
+      - "5433:5432"
     environment:
-      POSTGRES_USER: globeandcitizen
+      POSTGRES_USER: gcnow
       POSTGRES_PASSWORD: masterkey
-      POSTGRES_DB: stats-api-go
+#      POSTGRES_DB: stats-api-db
+      POSTGRES_DB: gcnow-db
     volumes:
       - ./tmp/gnc-be-db:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U globeandcitizen" ]
+      test: [ "CMD-SHELL", "pg_isready -U gcnow" ]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -69,8 +102,8 @@ services:
   migrate:
     image: dtpthao/gnc-backend:latest
     container_name: migrate
-    command: [ "migrate", "-path=/app/migrations", "-database=postgres://globeandcitizen:masterkey@db:5432/stats-api-go?sslmode=disable", "up" ]
+    command: [ "migrate", "-path=/app/migrations", "-database=postgres://gcnow:masterkey@db:5432/stats-api-go?sslmode=disable", "up" ]
     depends_on:
-      db:
+      gcnow-db:
         condition: service_healthy
 
