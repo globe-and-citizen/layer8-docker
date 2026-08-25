@@ -21,7 +21,7 @@ services:
       - layer8-network
 
   forward-proxy:
-    image: dtpthao/forward-proxy:0.4.07-arm
+    image: dtpthao/forward-proxy:0.4.2
     container_name: forward-proxy
     ports:
       - "6191:6191"
@@ -52,7 +52,7 @@ services:
         condition: service_started
 
   reverse-proxy:
-    image: dtpthao/reverse-proxy:0.4.1
+    image: dtpthao/reverse-proxy:0.4.2
     container_name: reverse-proxy
     env_file:
       - ./reverse-proxy/.env
@@ -82,7 +82,7 @@ services:
           - reverse.proxy
 
   server:
-    image: dtpthao/auth-server:0.4.01
+    image: dtpthao/auth-server:0.4.3
     container_name: server
     env_file:
       - ./auth-server/.env
